@@ -1,5 +1,6 @@
-// Save this file as prisma/schema.prisma
-// This is a placeholder - replace with full schema from artifact
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,8 +10,910 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Copy the COMPLETE schema from the Prisma Schema artifact
-// Due to terminal limitations, you'll need to:
-// 1. Open prisma/schema.prisma in a text editor
-// 2. Copy the entire content from the Prisma Schema artifact
-// 3. Replace this placeholder content
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  CANCELLED
+  SUSPENDED
+}
+
+enum SubscriptionPlan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  SALES
+  OFFICE
+  TECHNICIAN
+}
+
+enum ModuleCode {
+  PEST_CONTROL
+  PW_ONETIME
+  PW_RECURRING
+  CHRISTMAS_LIGHTS
+}
+
+enum PricingType {
+  FLAT_RATE
+  PER_SQFT
+  PER_LINEAR_FT
+  BY_HOUSE_SQFT
+  HOURLY
+  PER_TREATMENT
+  PERCENTAGE
+}
+
+enum ModifierType {
+  ADD_AMOUNT
+  MULTIPLY_PERCENTAGE
+}
+
+enum ConditionOperator {
+  EQUALS
+  GREATER_THAN
+  LESS_THAN
+  CONTAINS
+}
+
+enum RecurrenceInterval {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  CUSTOM
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  EXPIRED
+  REVISED
+  CANCELLED
+}
+
+enum CustomerSource {
+  WEB
+  PHONE
+  FIELD_SALES
+  REFERRAL
+  TRANSFER
+}
+
+enum PropertyType {
+  SINGLE_FAMILY
+  TOWNHOUSE
+  CONDO
+  COMMERCIAL
+}
+
+enum DiscountType {
+  PROMO_CODE
+  BUNDLE
+  MANUAL
+  SEASONAL
+}
+
+enum BundleTriggerType {
+  SERVICE_COUNT
+  SUBTOTAL_AMOUNT
+  SPECIFIC_COMBO
+}
+
+enum BulbColor {
+  WARM_WHITE
+  COOL_WHITE
+  MULTICOLOR
+  RED
+  GREEN
+  CUSTOM
+}
+
+enum SubscriptionPlanStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  COMPLETED
+}
+
+enum BillingFrequency {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+}
+
+enum VoucherStatus {
+  AVAILABLE
+  USED
+  TRANSFERRED
+  EXPIRED
+}
+
+enum JobStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProcessorType {
+  SQUARE
+  STRIPE
+  PAYPAL
+  AUTHORIZE_NET
+}
+
+enum Environment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  ACH
+  CASH
+  CHECK
+}
+
+enum RecipientType {
+  CUSTOMER
+  USER
+}
+
+enum NotificationType {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  OPENED
+  CLICKED
+}
+
+enum IntegrationType {
+  GHL
+  ZILLOW
+  HAR
+  PAYMENT_PROCESSOR
+}
+
+enum IntegrationDirection {
+  INBOUND
+  OUTBOUND
+}
+
+// ==========================================
+// COMPANY & ORGANIZATION TABLES
+// ==========================================
+
+model Company {
+  id                   String             @id @default(uuid())
+  name                 String
+  logoUrl              String?
+  primaryColor         String?
+  secondaryColor       String?
+  website              String?
+  phone                String?
+  email                String?
+  addressLine1         String?
+  addressLine2         String?
+  city                 String?
+  state                String?
+  zip                  String?
+  country              String             @default("US")
+  timezone             String             @default("America/Chicago")
+  branchModeEnabled    Boolean            @default(false)
+  ghlApiKey            String?
+  ghlLocationId        String?
+  subscriptionStatus   SubscriptionStatus @default(TRIAL)
+  subscriptionPlan     SubscriptionPlan   @default(STARTER)
+  trialEndsAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  // Relations
+  branches            Branch[]
+  users               User[]
+  companyModules      CompanyModule[]
+  serviceCategories   ServiceCategory[]
+  services            Service[]
+  bundleDiscounts     BundleDiscount[]
+  serviceAreas        ServiceArea[]
+  promoCodes          PromoCode[]
+  customers           Customer[]
+  quotes              Quote[]
+  paymentProcessors   PaymentProcessor[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  integrationLogs     IntegrationLog[]
+}
+
+model Branch {
+  id                   String    @id @default(uuid())
+  companyId            String
+  name                 String
+  code                 String
+  logoUrl              String?
+  phone                String?
+  email                String?
+  addressLine1         String?
+  addressLine2         String?
+  city                 String?
+  state                String?
+  zip                  String?
+  timezone             String?
+  isActive             Boolean   @default(true)
+  usesCompanyDefaults  Boolean   @default(true)
+  ghlLocationId        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  company             Company             @relation(fields: [companyId], references: [id])
+  users               User[]
+  branchModules       BranchModule[]
+  services            Service[]
+  bundleDiscounts     BundleDiscount[]
+  serviceAreas        ServiceArea[]
+  promoCodes          PromoCode[]
+  customers           Customer[]
+  quotes              Quote[]
+  paymentProcessors   PaymentProcessor[]
+
+  @@unique([companyId, code])
+}
+
+model User {
+  id              String    @id @default(uuid())
+  companyId       String
+  branchId        String?
+  email           String    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  role            UserRole
+  isActive        Boolean   @default(true)
+  commissionRate  Decimal?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  company         Company   @relation(fields: [companyId], references: [id])
+  branch          Branch?   @relation(fields: [branchId], references: [id])
+  quotesCreated   Quote[]   @relation("QuoteCreator")
+  jobsAssigned    Job[]
+  auditLogs       AuditLog[]
+}
+
+// ==========================================
+// MODULE CONFIGURATION TABLES
+// ==========================================
+
+model Module {
+  id              String          @id @default(uuid())
+  code            ModuleCode      @unique
+  name            String
+  description     String?
+  isAvailable     Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+
+  // Relations
+  companyModules  CompanyModule[]
+  branchModules   BranchModule[]
+  serviceCategories ServiceCategory[]
+  bundleDiscounts BundleDiscount[]
+  promoCodes      PromoCode[]
+  quotes          Quote[]
+  paymentProcessors PaymentProcessor[]
+}
+
+model CompanyModule {
+  id          String    @id @default(uuid())
+  companyId   String
+  moduleId    String
+  isEnabled   Boolean   @default(true)
+  settings    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  company     Company   @relation(fields: [companyId], references: [id])
+  module      Module    @relation(fields: [moduleId], references: [id])
+
+  @@unique([companyId, moduleId])
+}
+
+model BranchModule {
+  id                  String    @id @default(uuid())
+  branchId            String
+  moduleId            String
+  isEnabled           Boolean   @default(true)
+  usesCompanySettings Boolean   @default(true)
+  settings            Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  branch              Branch    @relation(fields: [branchId], references: [id])
+  module              Module    @relation(fields: [moduleId], references: [id])
+
+  @@unique([branchId, moduleId])
+}
+
+// ==========================================
+// SERVICE CONFIGURATION TABLES
+// ==========================================
+
+model ServiceCategory {
+  id           String    @id @default(uuid())
+  companyId    String
+  moduleId     String
+  name         String
+  description  String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  company      Company   @relation(fields: [companyId], references: [id])
+  module       Module    @relation(fields: [moduleId], references: [id])
+  services     Service[]
+}
+
+model Service {
+  id                  String              @id @default(uuid())
+  companyId           String
+  moduleId            String
+  categoryId          String
+  branchId            String?
+  name                String
+  description         String?
+  mainImageUrl        String?
+  galleryImages       Json?               // [{url: "", caption: ""}]
+  quickFeatures       Json?               // [{icon: "", title: "", subtitle: "", price: ""}]
+  keyBenefits         Json?               // [{title: "", description: ""}]
+  serviceSchedule     Json?               // [{date: "", description: "", icon: ""}]
+  pricingType         PricingType
+  basePrice           Decimal
+  minPrice            Decimal?
+  maxPrice            Decimal?
+  taxExempt           Boolean             @default(false)
+  requiresScheduling  Boolean             @default(true)
+  isRecurring         Boolean             @default(false)
+  recurrenceInterval  RecurrenceInterval?
+  recurrenceCount     Int?
+  displayOrder        Int                 @default(0)
+  isActive            Boolean             @default(true)
+  usesCompanyDefaults Boolean             @default(true)
+  metadata            Json?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  company             Company             @relation(fields: [companyId], references: [id])
+  module              Module              @relation(fields: [moduleId], references: [id])
+  category            ServiceCategory     @relation(fields: [categoryId], references: [id])
+  branch              Branch?             @relation(fields: [branchId], references: [id])
+  modifiers           ServiceModifier[]
+  tiers               ServiceTier[]
+  quoteItems          QuoteItem[]
+  subscriptionPlans   SubscriptionPlan[]
+  vouchersUsedFor     Voucher[]
+  specificBundles     BundleDiscount[]    @relation("BundleServices")
+  promoCodes          PromoCode[]
+}
+
+model ServiceModifier {
+  id                String             @id @default(uuid())
+  serviceId         String
+  name              String
+  description       String?
+  pricingType       PricingType
+  modifierType      ModifierType
+  modifierValue     Decimal
+  conditionField    String?
+  conditionOperator ConditionOperator?
+  conditionValue    String?
+  isAutomatic       Boolean            @default(false)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  // Relations
+  service           Service            @relation(fields: [serviceId], references: [id])
+}
+
+model ServiceTier {
+  id             String      @id @default(uuid())
+  serviceId      String
+  name           String
+  description    String?
+  initialPrice   Decimal?
+  recurringPrice Decimal?
+  treatmentCount Int?
+  features       Json?       // Array of features
+  displayOrder   Int         @default(0)
+  isDefault      Boolean     @default(false)
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relations
+  service        Service     @relation(fields: [serviceId], references: [id])
+  quoteItems     QuoteItem[]
+}
+
+model BundleDiscount {
+  id                 String             @id @default(uuid())
+  companyId          String
+  branchId           String?
+  name               String
+  description        String?
+  triggerType        BundleTriggerType
+  minServices        Int?
+  minSubtotal        Decimal?
+  specificServiceIds Json?              // Array of service IDs
+  discountType       DiscountType
+  discountValue      Decimal
+  applesToModuleId   String?
+  isActive           Boolean            @default(true)
+  validFrom          DateTime?
+  validUntil         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  company            Company            @relation(fields: [companyId], references: [id])
+  branch             Branch?            @relation(fields: [branchId], references: [id])
+  module             Module?            @relation(fields: [applesToModuleId], references: [id])
+  specificServices   Service[]          @relation("BundleServices")
+  quoteDiscounts     QuoteDiscount[]
+}
+
+// ==========================================
+// PRICING & AREA TABLES
+// ==========================================
+
+model ServiceArea {
+  id         String    @id @default(uuid())
+  companyId  String
+  branchId   String?
+  zipCode    String
+  city       String?
+  state      String?
+  taxRate    Decimal?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  company    Company   @relation(fields: [companyId], references: [id])
+  branch     Branch?   @relation(fields: [branchId], references: [id])
+
+  @@unique([companyId, branchId, zipCode])
+}
+
+model PromoCode {
+  id                   String          @id @default(uuid())
+  companyId            String
+  branchId             String?
+  code                 String          @unique
+  description          String?
+  discountType         DiscountType
+  discountValue        Decimal
+  minPurchaseAmount    Decimal?
+  maxUsesTotal         Int?
+  maxUsesPerCustomer   Int?
+  currentUses          Int             @default(0)
+  appliesToModuleId    String?
+  appliesToServiceId   String?
+  validFrom            DateTime?
+  validUntil           DateTime?
+  isActive             Boolean         @default(true)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  // Relations
+  company              Company         @relation(fields: [companyId], references: [id])
+  branch               Branch?         @relation(fields: [branchId], references: [id])
+  module               Module?         @relation(fields: [appliesToModuleId], references: [id])
+  service              Service?        @relation(fields: [appliesToServiceId], references: [id])
+  quoteDiscounts       QuoteDiscount[]
+}
+
+// ==========================================
+// CUSTOMER & QUOTE TABLES
+// ==========================================
+
+model Customer {
+  id                  String             @id @default(uuid())
+  companyId           String
+  branchId            String?
+  email               String
+  phone               String?
+  firstName           String
+  lastName            String
+  source              CustomerSource?
+  referralCustomerId  String?
+  ghlContactId        String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  // Relations
+  company             Company            @relation(fields: [companyId], references: [id])
+  branch              Branch?            @relation(fields: [branchId], references: [id])
+  referredBy          Customer?          @relation("CustomerReferrals", fields: [referralCustomerId], references: [id])
+  referrals           Customer[]         @relation("CustomerReferrals")
+  properties          Property[]
+  quotes              Quote[]
+  subscriptionPlans   SubscriptionPlan[]
+  vouchersTransferred Voucher[]
+
+  @@unique([companyId, email])
+}
+
+model Property {
+  id             String       @id @default(uuid())
+  customerId     String
+  addressLine1   String
+  addressLine2   String?
+  city           String
+  state          String
+  zip            String
+  latitude       Decimal?
+  longitude      Decimal?
+  squareFootage  Int?
+  lotSize        Int?
+  stories        Int?
+  yearBuilt      Int?
+  propertyType   PropertyType?
+  roofType       String?
+  drivewayType   String?
+  pool           Boolean      @default(false)
+  zillowUrl      String?
+  harUrl         String?
+  zillowData     Json?
+  harData        Json?
+  dataFetchedAt  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  customer       Customer     @relation(fields: [customerId], references: [id])
+  quotes         Quote[]
+}
+
+model Quote {
+  id                String           @id @default(uuid())
+  companyId         String
+  branchId          String?
+  customerId        String
+  propertyId        String
+  moduleId          String
+  quoteNumber       String           @unique
+  status            QuoteStatus      @default(DRAFT)
+  subtotal          Decimal
+  discountAmount    Decimal          @default(0)
+  taxAmount         Decimal          @default(0)
+  total             Decimal
+  validUntil        DateTime
+  originalQuoteId   String?
+  createdByUserId   String
+  acceptedAt        DateTime?
+  viewedAt          DateTime?
+  secureToken       String           @unique
+  metadata          Json?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  // Relations
+  company           Company          @relation(fields: [companyId], references: [id])
+  branch            Branch?          @relation(fields: [branchId], references: [id])
+  customer          Customer         @relation(fields: [customerId], references: [id])
+  property          Property         @relation(fields: [propertyId], references: [id])
+  module            Module           @relation(fields: [moduleId], references: [id])
+  originalQuote     Quote?           @relation("QuoteRevisions", fields: [originalQuoteId], references: [id])
+  revisions         Quote[]          @relation("QuoteRevisions")
+  createdBy         User             @relation("QuoteCreator", fields: [createdByUserId], references: [id])
+  items             QuoteItem[]
+  discounts         QuoteDiscount[]
+  christmasQuote    ChristmasQuote?
+  jobs              Job[]
+  payments          Payment[]
+}
+
+model QuoteItem {
+  id               String       @id @default(uuid())
+  quoteId          String
+  serviceId        String
+  serviceTierId    String?
+  name             String
+  description      String?
+  quantity         Int          @default(1)
+  unitPrice        Decimal
+  modifiersApplied Json?        // Array of applied modifiers
+  modifierAmount   Decimal      @default(0)
+  discountAmount   Decimal      @default(0)
+  taxAmount        Decimal      @default(0)
+  total            Decimal
+  metadata         Json?
+  displayOrder     Int          @default(0)
+  createdAt        DateTime     @default(now())
+
+  // Relations
+  quote            Quote        @relation(fields: [quoteId], references: [id])
+  service          Service      @relation(fields: [serviceId], references: [id])
+  serviceTier      ServiceTier? @relation(fields: [serviceTierId], references: [id])
+}
+
+model QuoteDiscount {
+  id               String          @id @default(uuid())
+  quoteId          String
+  discountType     DiscountType
+  promoCodeId      String?
+  bundleDiscountId String?
+  description      String
+  discountAmount   Decimal
+  createdAt        DateTime        @default(now())
+
+  // Relations
+  quote            Quote           @relation(fields: [quoteId], references: [id])
+  promoCode        PromoCode?      @relation(fields: [promoCodeId], references: [id])
+  bundleDiscount   BundleDiscount? @relation(fields: [bundleDiscountId], references: [id])
+}
+
+// ==========================================
+// CHRISTMAS LIGHTS SPECIFIC TABLES
+// ==========================================
+
+model ChristmasQuote {
+  id                   String              @id @default(uuid())
+  quoteId              String              @unique
+  bulbColor            BulbColor
+  includesLeftSide     Boolean             @default(false)
+  includesRightSide    Boolean             @default(false)
+  includesBack         Boolean             @default(false)
+  roofPpbYear1         Decimal
+  groundPpbYear1       Decimal
+  roofPpbYear2         Decimal
+  groundPpbYear2       Decimal
+  estimatedBulbCounts  Json                // {face: 150, gingerbread: 75, stickies: 50, ground: 100}
+  actualBulbCounts     Json?
+  installationDate     DateTime?
+  removalDate          DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  // Relations
+  quote                Quote               @relation(fields: [quoteId], references: [id])
+  packages             ChristmasPackage[]
+}
+
+model ChristmasPackage {
+  id                      String         @id @default(uuid())
+  christmasQuoteId        String
+  packageNumber           Int            // 1, 2, or 3
+  name                    String
+  description             String?
+  roofPpbDiscountYear1    Decimal
+  groundPpbDiscountYear1  Decimal
+  roofPpbDiscountYear2    Decimal
+  groundPpbDiscountYear2  Decimal
+  sectionsIncluded        Json           // {face: true, gingerbread: false, stickies: true, ground: true}
+  totalBulbs              Int
+  firstYearPrice          Decimal
+  secondYearPrice         Decimal
+  savingsAmount           Decimal
+  images                  Json?          // [{url: "", caption: ""}]
+  isSelected              Boolean        @default(false)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  // Relations
+  christmasQuote          ChristmasQuote @relation(fields: [christmasQuoteId], references: [id])
+}
+
+// ==========================================
+// RECURRING SERVICES TABLES
+// ==========================================
+
+model SubscriptionPlan {
+  id                 String                 @id @default(uuid())
+  serviceId          String
+  customerId         String
+  status             SubscriptionPlanStatus @default(ACTIVE)
+  startDate          DateTime
+  nextServiceDate    DateTime?
+  billingFrequency   BillingFrequency
+  billingAmount      Decimal
+  vouchersPerPeriod  Int?
+  vouchersBalance    Int                    @default(0)
+  maxVoucherRollover Int?
+  cancelReason       String?
+  cancelledAt        DateTime?
+  pausedUntil        DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  // Relations
+  service            Service                @relation(fields: [serviceId], references: [id])
+  customer           Customer               @relation(fields: [customerId], references: [id])
+  vouchers           Voucher[]
+}
+
+model Voucher {
+  id                      String        @id @default(uuid())
+  subscriptionPlanId      String
+  voucherCode             String        @unique
+  status                  VoucherStatus @default(AVAILABLE)
+  issuedDate              DateTime
+  expiryDate              DateTime?
+  usedDate                DateTime?
+  usedForServiceId        String?
+  transferredToCustomerId String?
+  transferredDate         DateTime?
+  createdAt               DateTime      @default(now())
+
+  // Relations
+  subscriptionPlan        SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  usedForService          Service?         @relation(fields: [usedForServiceId], references: [id])
+  transferredToCustomer   Customer?        @relation(fields: [transferredToCustomerId], references: [id])
+}
+
+// ==========================================
+// SCHEDULING & JOBS TABLES
+// ==========================================
+
+model Job {
+  id                   String     @id @default(uuid())
+  quoteId              String
+  jobNumber            String     @unique
+  status               JobStatus  @default(SCHEDULED)
+  scheduledDate        DateTime?
+  scheduledTimeWindow  String?    // morning, afternoon, specific
+  scheduledTime        DateTime?
+  assignedToUserId     String?
+  completedAt          DateTime?
+  completionNotes      String?
+  customerSignatureUrl String?
+  photosBefore         Json?      // Array of URLs
+  photosAfter          Json?      // Array of URLs
+  ghlOpportunityId     String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  // Relations
+  quote                Quote      @relation(fields: [quoteId], references: [id])
+  assignedTo           User?      @relation(fields: [assignedToUserId], references: [id])
+  payments             Payment[]
+}
+
+// ==========================================
+// PAYMENT TABLES
+// ==========================================
+
+model PaymentProcessor {
+  id              String         @id @default(uuid())
+  companyId       String
+  branchId        String?
+  moduleId        String?
+  processorType   ProcessorType
+  isDefault       Boolean        @default(false)
+  apiKey          String         // Encrypted
+  apiSecret       String?        // Encrypted
+  webhookSecret   String?        // Encrypted
+  environment     Environment    @default(SANDBOX)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  company         Company        @relation(fields: [companyId], references: [id])
+  branch          Branch?        @relation(fields: [branchId], references: [id])
+  module          Module?        @relation(fields: [moduleId], references: [id])
+  payments        Payment[]
+}
+
+model Payment {
+  id                    String           @id @default(uuid())
+  quoteId               String
+  jobId                 String?
+  paymentProcessorId    String
+  amount                Decimal
+  status                PaymentStatus    @default(PENDING)
+  processorTransactionId String?
+  paymentMethod         PaymentMethod
+  lastFour              String?
+  failureReason         String?
+  refundAmount          Decimal?
+  refundedAt            DateTime?
+  metadata              Json?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  // Relations
+  quote                 Quote            @relation(fields: [quoteId], references: [id])
+  job                   Job?             @relation(fields: [jobId], references: [id])
+  paymentProcessor      PaymentProcessor @relation(fields: [paymentProcessorId], references: [id])
+}
+
+// ==========================================
+// SYSTEM & AUDIT TABLES
+// ==========================================
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  companyId  String
+  userId     String?
+  action     String    // quote.created, price.changed
+  entityType String    // quote, service, customer
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  company    Company   @relation(fields: [companyId], references: [id])
+  user       User?     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id            String             @id @default(uuid())
+  companyId     String
+  recipientType RecipientType
+  recipientId   String
+  type          NotificationType
+  subject       String?
+  content       String
+  status        NotificationStatus @default(PENDING)
+  sentAt        DateTime?
+  openedAt      DateTime?
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+
+  // Relations
+  company       Company            @relation(fields: [companyId], references: [id])
+}
+
+model IntegrationLog {
+  id               String               @id @default(uuid())
+  companyId        String
+  integrationType  IntegrationType
+  direction        IntegrationDirection
+  endpoint         String
+  requestData      Json?
+  responseData     Json?
+  statusCode       Int?
+  errorMessage     String?
+  processingTimeMs Int?
+  createdAt        DateTime             @default(now())
+
+  // Relations
+  company          Company              @relation(fields: [companyId], references: [id])
+}
