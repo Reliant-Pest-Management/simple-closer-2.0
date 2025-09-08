@@ -1,0 +1,16 @@
+// Save this file as prisma/schema.prisma
+// This is a placeholder - replace with full schema from artifact
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Copy the COMPLETE schema from the Prisma Schema artifact
+// Due to terminal limitations, you'll need to:
+// 1. Open prisma/schema.prisma in a text editor
+// 2. Copy the entire content from the Prisma Schema artifact
+// 3. Replace this placeholder content
