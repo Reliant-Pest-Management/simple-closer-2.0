@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Placeholder values only; nothing here talks to real services.
+  DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+  JWT_SECRET: placeholder-secret
+  NODE_ENV: test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # No lockfile in the repo, so plain npm install.
+      - run: npm install
+      # No typecheck/lint/build scripts exist (plain JS). The repo has no test
+      # files yet, so allow an empty run. TODO(cleanup): remove the flag once tests exist.
+      - run: npm test -- --passWithNoTests
